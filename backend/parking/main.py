@@ -16,8 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import *
 from models.models import *
 from sqlalchemy.future import select
-
-
+from schemas.common_schema import *
+import uuid
 app = FastAPI()
 
 # Allow Flutter to connect
@@ -29,6 +29,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+
 detection_active = False
 capture_thread = None
 current_capture = None
@@ -39,14 +42,61 @@ plate_texts = []
 @app.on_event("startup")
 async def startup_event():
     print("On event")
-    await reflect_models(engine, ["user", "slot", "booking", "rental", "parklot", "image", "common"])
+  
+    
+    await reflect_models(engine, ["user", "slot", "booking", "rental", "parklot", "image", "common"])    
+    set_globals()
+
+@app.get("/login", status_code=200)
+async def verify_number(user:LoginModel, db: AsyncSession = Depends(get_db)):
+
+    stmt = select(Common).where(Common.mobile_number == user.mobile_number, Common.phone_code == user.phone_code)
+    result = await db.execute(stmt)
+    record = result.scalar_one_or_none() 
+
+    if record is None:
+        
+        login_data = {name: getattr(user, name) for name in get_common_column_names}
+        login_data['login_id'] = str(uuid.uuid4())
+        new_user = Common(**login_data)
+        db.add(new_user)
+        db.commit()
+        message = "Success"
+       
+
+    return {"message": "Success"} 
+
+@app.post("/register")
+async def register_number(number:int,phone_code:str,db:AsyncSession = Depends(get_db)):
+
+    verify_number = select(Common).where(Common.mobile_number == number,Common.phone_code == phone_code)
+    result = await db.execute(verify_number)
+
+    if result:
+        raise HTTPException(status_code=404 ,detail="Mobile number already exist in parkin.Please signin!")
+ 
+    db.add(verify_number)
+    db.commit()
+
+    return "Mobile number " + {number} + "register in parkin"
+
+@app.post("/verify_otp")
+async def verify_otp(otp=str,number = int ,phone_code = str,db:AsyncSession = Depends(get_db)):
+
+    verify_number = select(Common).where(Common.mobile_number == number,Common.phone_code == phone_code)
+    result = await db.execute(verify_number)
+
+    if result.otp == otp:
+
+        return "OTP Verified Successfully"
+    else:
+        raise HTTPException(status_code=404,detail="Oops OTP parkin permit was invalid 🛑 — request a fresh one!")
 
 
-# Create all tables
 @app.get("/users")
 async def get_users(db: AsyncSession = Depends(get_db)):
 
-    result = await db.execute(select(model_registry["user"]))
+    result = await db.execute(select(User))
     users = result.scalars().all()
     return users
 
