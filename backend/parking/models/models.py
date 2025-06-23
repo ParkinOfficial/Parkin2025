@@ -7,13 +7,12 @@ from sqlalchemy import Table
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import Table, MetaData
 import sys
-from schemas.common_schema import create_login_model,get_common_column_names
+
 
 model_registry = {}
 metadata = MetaData()
 
-User = Slot = Booking = Rental = ParkLot = Image = Common = LoginModel = None
-
+User = Slot = Booking = Rental = ParkLot = Image  = None
 class Base(DeclarativeBase):
     pass
 
@@ -27,11 +26,13 @@ async def reflect_models(engine: AsyncEngine, table_names: list[str]):
         await conn.run_sync(do_reflection)
 
 def set_globals():
-    global User, Slot, Booking, Rental, ParkLot, Image, Common
+
+    global User, Slot, Booking, Rental, ParkLot, Image
     User = model_registry["user"]
     Slot = model_registry["slot"]
     Booking = model_registry["booking"]
     Rental = model_registry["rental"]
     ParkLot = model_registry["parklot"]
     Image = model_registry["image"]
-    Common = model_registry["common"]
+    
+    LoginModel = create_login_model(get_common_column_names())

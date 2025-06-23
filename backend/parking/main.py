@@ -38,47 +38,39 @@ current_capture = None
 results = {}
 plate_texts = []
 
+LoginModel=None
+
+
 
 @app.on_event("startup")
 async def startup_event():
     print("On event")
-  
-    
-    await reflect_models(engine, ["user", "slot", "booking", "rental", "parklot", "image", "common"])    
-    set_globals()
-
-@app.get("/login", status_code=200)
-async def verify_number(user:LoginModel, db: AsyncSession = Depends(get_db)):
-
+    await reflect_models(engine, ["user", "slot", "booking", "rental", "parklot", "image", "common"])  
+    global LoginModel
+    LoginModel = create_login_model(get_common_column_names())
+    print(f"Loginschema {LoginModel}")
+   
+   
+@app.post("/login", status_code=200)
+async def verify_number(user: LoginModel, db: AsyncSession = Depends(get_db)):
     stmt = select(Common).where(Common.mobile_number == user.mobile_number, Common.phone_code == user.phone_code)
     result = await db.execute(stmt)
     record = result.scalar_one_or_none() 
 
     if record is None:
-        
-        login_data = {name: getattr(user, name) for name in get_common_column_names}
+        login_data = {name: getattr(user, name) for name in get_common_column_names()}
         login_data['login_id'] = str(uuid.uuid4())
         new_user = Common(**login_data)
         db.add(new_user)
-        db.commit()
-        message = "Success"
-       
+        await db.commit()
+        return {"message": "Registered successfully"}
 
-    return {"message": "Success"} 
+    return {"message": "Already registered"}
 
 @app.post("/register")
-async def register_number(number:int,phone_code:str,db:AsyncSession = Depends(get_db)):
+async def register_number(db:AsyncSession = Depends(get_db)):
 
-    verify_number = select(Common).where(Common.mobile_number == number,Common.phone_code == phone_code)
-    result = await db.execute(verify_number)
-
-    if result:
-        raise HTTPException(status_code=404 ,detail="Mobile number already exist in parkin.Please signin!")
- 
-    db.add(verify_number)
-    db.commit()
-
-    return "Mobile number " + {number} + "register in parkin"
+    return
 
 @app.post("/verify_otp")
 async def verify_otp(otp=str,number = int ,phone_code = str,db:AsyncSession = Depends(get_db)):
