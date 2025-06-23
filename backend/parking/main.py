@@ -30,7 +30,7 @@ current_capture = None
 results = {}
 plate_texts = []
 
-def analyze_license_plate():
+def analyze_license_plates():
     global detection_active, results, plate_texts, current_capture
     
     try:
