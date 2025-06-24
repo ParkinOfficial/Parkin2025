@@ -1,316 +1,257 @@
-// import 'package:cached_network_image/cached_network_image.dart';
-// import 'package:firebase_messaging/firebase_messaging.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
-// import 'package:school_bus_app/src/loggers_files/logger.dart';
-// import 'package:school_bus_app/src/login-models/api_service.dart';
-// import 'package:sizer/sizer.dart';
-// import '../../dialog-global/dialog-box.dart';
-// import '../../error-Screen/error_Screen.dart';
-// import '../../login-models/config.dart';
-// import '../../login-models/response_model.dart';
-// import '../otp-Screen/otp_screen.dart';
-// import 'login_vm.dart';
-//
-// class LoginScreen extends StatefulWidget {
-//   static String routeName = "LoginScreen";
-//
-//   const LoginScreen({super.key});
-//
-//   @override
-//   State<LoginScreen> createState() => _LoginScreenState();
-// }
-//
-// class _LoginScreenState extends State<LoginScreen> {
-//   final log = logger(LoginScreen);
-//   final loginVm = LoginVm();
-//   final scaffoldKey = GlobalKey<ScaffoldState>();
-//   GlobalKey<FormState> globalFormKey = GlobalKey<FormState>();
-//   bool isAPICallProcess = false;
-//   final _numberController = TextEditingController();
-//   late String imageUrl;
-//   String? errorMessage;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     imageUrl = "http://i.imgur.com/bOCEVJg.png";
-//   }
-//
-//   @override
-//   void dispose() {
-//     _numberController.dispose();
-//     super.dispose();
-//   }
-//
-//   // void _submit() async {
-//   //   if (globalFormKey.currentState?.validate() ?? false) {
-//   //     setState(() {
-//   //       isAPICallProcess = true;
-//   //     });
-//   //     log.i("API URL:${Configs.apiURL}");
-//   //     try {
-//   //       String? deviceToken = await FirebaseMessaging.instance.getToken();
-//   //       log.i(deviceToken);
-//   //       var response = await APIServices.otpLogin(_numberController.text);
-//   //
-//   //       await Future.delayed(const Duration(seconds: 1));
-//   //       if (mounted) {
-//   //         // Check if widget is mounted
-//   //         setState(() {
-//   //           isAPICallProcess = false;
-//   //         });
-//   //       }
-//   //
-//   //       if (response.statusCode == 200) {
-//   //         ResponseModel loginResponse = ResponseModel(response.body);
-//   //         log.d(loginResponse.toString());
-//   //
-//   //         // Only navigate if the response is successful
-//   //         Navigator.push(
-//   //           context,
-//   //           MaterialPageRoute(
-//   //             builder: (context) => OptScreen(
-//   //               mobileNo: _numberController.text,
-//   //             ),
-//   //           ),
-//   //         );
-//   //       } else {
-//   //         GlobalDialogs.showErrorDialogForApi(context, 'invalid number');
-//   //       }
-//   //     } catch (error) {
-//   //       log.e("the error=$error");
-//   //       if (mounted) {
-//   //         // Check if widget is mounted
-//   //         setState(() {
-//   //           isAPICallProcess = false;
-//   //         });
-//   //       }
-//   //       _showErrorScreen('Network error. Please check your connection.');
-//   //     }
-//   //   }
-//   // }
-//   void _submit() async {
-//     if (globalFormKey.currentState?.validate() ?? false) {
-//       setState(() {
-//         isAPICallProcess = true;
-//       });
-//
-//       String? result  = await loginVm.submitLogin(_numberController.text);
-//
-//       setState(() {
-//         isAPICallProcess = false;
-//       });
-//
-//       if (result == null) {
-//         Navigator.push(
-//           context,
-//           MaterialPageRoute(
-//             builder: (context) => OptScreen(
-//               mobileNo: _numberController.text,
-//             ),
-//           ),
-//         );
-//       } else {
-//         GlobalDialogs.showErrorDialogForApi(context, result);
-//       }
-//     }
-//   }
-//   void _showErrorScreen(String errorMessage) {
-//     Navigator.push(
-//       context,
-//       MaterialPageRoute(
-//         builder: (context) => ErrorScreen(
-//           errorMessage: errorMessage,
-//           onRetry: _submit, // Pass the submit function for retry
-//         ),
-//       ),
-//     );
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return SafeArea(
-//         child: Scaffold(
-//           body: ProgressHUD(
-//             inAsyncCall: isAPICallProcess,
-//             opacity: 0.3,
-//             child: loginUI(),
-//           ),
-//         ));
-//   }
-//
-//   Widget loginUI() {
-//     return Form(
-//       key: globalFormKey,
-//       child: Column(
-//         mainAxisAlignment: MainAxisAlignment.center,
-//         children: [
-//           CachedNetworkImage(
-//             imageUrl: imageUrl,
-//             height: 20.h,
-//             fit: BoxFit.contain,
-//             placeholder: (context, url) =>
-//             const CircularProgressIndicator(), // Optional placeholder
-//             errorWidget: (context, url, error) =>
-//             const Icon(Icons.error), // Error widget
-//           ),
-//           SizedBox(height: 0.5.h), // Responsive padding
-//           const Center(
-//             child: Text(
-//               "Login With a Mobile Number",
-//               style: TextStyle(
-//                 fontSize: 20,
-//                 fontWeight: FontWeight.bold,
-//               ),
-//             ),
-//           ),
-//           SizedBox(height: 1.h),
-//           const Center(
-//             child: Text(
-//               "Enter Your valid Mobile number",
-//               style: TextStyle(
-//                 fontSize: 14,
-//               ),
-//             ),
-//           ),
-//           SizedBox(height: 1.5.h),
-//           Padding(
-//             padding:
-//             EdgeInsets.symmetric(horizontal: 5.w), // Responsive padding
-//             child: Row(
-//               mainAxisAlignment: MainAxisAlignment.start,
-//               crossAxisAlignment: CrossAxisAlignment.center,
-//               children: [
-//                 Flexible(
-//                   flex: 1,
-//                   child: Container(
-//                     height: 5.h, // Responsive container height
-//                     // width: 50,
-//                     margin: EdgeInsets.fromLTRB(
-//                         0, 1.h, 1.w, 3.5.h), // Responsive margins
-//                     decoration: BoxDecoration(
-//                       borderRadius: BorderRadius.circular(5),
-//                       border: Border.all(
-//                         color: Colors.black,
-//                       ),
-//                     ),
-//                     child: const Center(
-//                       child: Text(
-//                         "+91",
-//                         style: TextStyle(
-//                           color: Colors.black,
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//                 SizedBox(width: 2.w), // Add space between the boxes
-//                 Flexible(
-//                   flex: 5,
-//                   child: TextFormField(
-//                     maxLines: 1,
-//                     maxLength: 10,
-//                     controller: _numberController,
-//                     style: TextStyle(color: Colors.black, fontSize: 15.sp),
-//                     decoration: InputDecoration(
-//                       contentPadding: EdgeInsets.all(5.sp),
-//                       hintText: "Mobile Number",
-//                       enabledBorder: OutlineInputBorder(
-//                         borderSide:
-//                         BorderSide(color: Colors.black, width: 1.sp),
-//                       ),
-//                       border: OutlineInputBorder(
-//                         borderSide:
-//                         BorderSide(color: Colors.black, width: 1.sp),
-//                       ),
-//                       focusedBorder: OutlineInputBorder(
-//                         borderSide:
-//                         BorderSide(color: Colors.redAccent, width: 1.sp),
-//                       ),
-//                     ),
-//                     keyboardType: TextInputType.number,
-//                     inputFormatters: <TextInputFormatter>[
-//                       FilteringTextInputFormatter.digitsOnly,
-//                     ],
-//                     validator: loginVm.validateNumber,
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//           SizedBox(height: 0.5.h), // Responsive padding
-//           Center(
-//             child: ElevatedButton(
-//               onPressed: _submit,
-//               style: ElevatedButton.styleFrom(
-//                 foregroundColor: Colors.black,
-//                 backgroundColor: HexColor("78D0B1"),
-//                 shape: RoundedRectangleBorder(
-//                   borderRadius: BorderRadius.circular(20.sp),
-//                 ),
-//               ),
-//               child: const Text("Continue"),
-//             ),
-//           ),
-//           // If there's an error message, display it below the button
-//           if (errorMessage != null && errorMessage!.isNotEmpty)
-//             Padding(
-//               padding: const EdgeInsets.only(top: 20),
-//               child: Text(
-//                 errorMessage!,
-//                 style: TextStyle(
-//                   color: Colors.red,
-//                   fontWeight: FontWeight.bold,
-//                 ),
-//               ),
-//             ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-//
-// class ProgressHUD extends StatelessWidget {
-//   final Widget child;
-//   final bool inAsyncCall;
-//   final double opacity;
-//
-//   const ProgressHUD({
-//     super.key,
-//     required this.child,
-//     required this.inAsyncCall,
-//     required this.opacity,
-//   });
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Stack(
-//       children: [
-//         child,
-//         if (inAsyncCall)
-//           Opacity(
-//             opacity: opacity,
-//             child: const ModalBarrier(dismissible: false, color: Colors.black),
-//           ),
-//         if (inAsyncCall)
-//           const Center(
-//             child: CircularProgressIndicator(),
-//           ),
-//       ],
-//     );
-//   }
-// }
-//
-// class HexColor extends Color {
-//   static int _getColorFromHex(String hexColor) {
-//     hexColor = hexColor.toUpperCase().replaceAll("#", "");
-//     if (hexColor.length == 6) {
-//       hexColor = "FF$hexColor";
-//     }
-//     return int.parse(hexColor, radix: 16);
-//   }
-//
-//   HexColor(final String hexColor) : super(_getColorFromHex(hexColor));
-// }
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:country_picker/country_picker.dart';
+import 'package:parking/data/api/api_service.dart'; // Ensure this contains `String login = "https://your-api/login";`
+import 'package:parking/presentation/screens/otp/otp.dart';
+
+class LoginScreen extends StatefulWidget {
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController phoneController = TextEditingController();
+  late Country selectedCountry;
+  bool isLoading = false;
+
+  final Map<String, int> phoneLengths = {
+    'IN': 10,
+    'US': 10,
+    'UK': 10,
+    'AE': 9,
+    'PK': 10,
+    // Add more countries as needed
+  };
+
+  final String verifyLogin = login; // from api_service.dart
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCountry = CountryService().getAll().firstWhere(
+          (country) => country.countryCode == 'IN',
+      orElse: () => CountryService().getAll().first,
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<bool> _checkPhoneNumberExists(String phoneNumber) async {
+    final phoneCode = '+${selectedCountry.phoneCode}';
+
+    print("📲 Calling API: $verifyLogin");
+    print("📦 Request body: {mobile_number: $phoneNumber, phone_code: $phoneCode}");
+
+    final response = await http.post(
+      Uri.parse(verifyLogin),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'mobile_number': phoneNumber,
+        'phone_code': phoneCode,
+      }),
+    );
+
+    print("📩 Response status: ${response.statusCode}");
+    print("📩 Response body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return true;
+    } else {
+      throw Exception('Failed to check phone number');
+    }
+  }
+
+  Future<void> _validateAndProceed() async {
+    final rawPhone = phoneController.text.trim();
+    final countryCode = selectedCountry.countryCode;
+    final expectedLength = phoneLengths[countryCode] ?? 6;
+
+    if (rawPhone.isEmpty || rawPhone.length != expectedLength) {
+      _showSnackBar("Enter a valid ${selectedCountry.name} number");
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final exists = await _checkPhoneNumberExists(rawPhone);
+      print(exists);
+      if (exists) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => OtpScreen(phoneCode: selectedCountry.phoneCode,mobileNumber: rawPhone)),
+        );
+      } else {
+        _showSnackBar("Phone number not registered");
+      }
+    } catch (e) {
+      print("❌ Exception: $e");
+      _showSnackBar("Error checking phone number");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 20),
+                    Image.asset('assets/ic_log.png', width: 86, height: 64),
+                    SizedBox(height: 20),
+                    Text(
+                      "What's your contact ?",
+                      style: TextStyle(
+                        fontFamily: 'MontserratBold',
+                        fontSize: 16,
+                        color: Color(0xFF2F2E2E),
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      'Enter your phone number for verification',
+                      style: TextStyle(
+                        fontFamily: 'MontserratRegular',
+                        fontSize: 11,
+                        color: Color(0xFF2F2E2E),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                    /// Phone input container
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              showCountryPicker(
+                                context: context,
+                                showPhoneCode: true,
+                                onSelect: (Country country) {
+                                  setState(() {
+                                    selectedCountry = country;
+                                  });
+                                },
+                              );
+                            },
+                            child: Row(
+                              children: [
+                                Text(selectedCountry.flagEmoji, style: TextStyle(fontSize: 20)),
+                                SizedBox(width: 6),
+                                Text(
+                                  '+${selectedCountry.phoneCode}',
+                                  style: TextStyle(
+                                    fontFamily: 'RobotoBold',
+                                    fontSize: 12,
+                                    color: Color(0xFF2F2E2E),
+                                  ),
+                                ),
+                                Icon(Icons.arrow_drop_down),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: phoneController,
+                              keyboardType: TextInputType.number,
+                              maxLength: phoneLengths[selectedCountry.countryCode] ?? 10,
+                              decoration: InputDecoration(
+                                hintText: 'Phone Number',
+                                counterText: '',
+                                border: InputBorder.none,
+                              ),
+                              style: TextStyle(
+                                fontFamily: 'RobotoBold',
+                                fontSize: 12,
+                                color: Color(0xFF2F2E2E),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 100),
+                  ],
+                ),
+              ),
+            ),
+
+            Positioned(
+              bottom: 75,
+              left: 20,
+              right: 20,
+              child: Text(
+                '',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'MontserratMedium',
+                  fontSize: 9,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ),
+
+            Positioned(
+              bottom: 10,
+              left: MediaQuery.of(context).size.width * 0.5 - 160,
+              child: SizedBox(
+                width: 320,
+                child: ElevatedButton(
+                  onPressed: _validateAndProceed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF6200EE),
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    elevation: 10,
+                  ),
+                  child: isLoading
+                      ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                      : Text(
+                    'Next',
+                    style: TextStyle(
+                      fontFamily: 'MontserratBold',
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

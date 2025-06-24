@@ -85,30 +85,31 @@ async def startup_event():
 
 
 
-@app.post("/register")
-async def register_number(db:AsyncSession = Depends(get_db)):
+    @app.post("/register")
+    async def register_number(db:AsyncSession = Depends(get_db)):
 
-    return
+        return
 
-@app.post("/verify_otp")
-async def verify_otp(otp=str,number = int ,phone_code = str,db:AsyncSession = Depends(get_db)):
+    @app.post("/verify_otp")
+    async def verify_otp(otp:str,user:LoginModel = Body(...),db:AsyncSession = Depends(get_db)):
 
-    verify_number = select(Common).where(Common.mobile_number == number,Common.phone_code == phone_code)
-    result = await db.execute(verify_number)
+        verify_number = select(Common).where(Common.mobile_number == user.mobile_number,Common.phone_code == user.phone_code)
+        result = await db.execute(verify_number)
+        print(f"Result{result}")
+        record = result.scalar_one_or_none() 
+        if record.otp == otp:
 
-    if result.otp == otp:
-
-        return "OTP Verified Successfully"
-    else:
-        raise HTTPException(status_code=404,detail="Oops OTP parkin permit was invalid 🛑 — request a fresh one!")
+            return "OTP Verified Successfully"
+        else:
+            raise HTTPException(status_code=404,detail="Oops OTP parkin permit was invalid 🛑 — request a fresh one!")
 
 
-@app.get("/users")
-async def get_users(db: AsyncSession = Depends(get_db)):
+    @app.get("/users")
+    async def get_users(db: AsyncSession = Depends(get_db)):
 
-    result = await db.execute(select(User))
-    users = result.scalars().all()
-    return users
+        result = await db.execute(select(User))
+        users = result.scalars().all()
+        return users
 
 
 @app.get("/")
