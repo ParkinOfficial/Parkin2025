@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException,Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import easyocr
@@ -12,7 +12,12 @@ from ultralytics import YOLO
 from anrp.sort.sort import *
 from anrp.util import get_car, read_license_plate
 import numpy as np
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from database.database import *
+from models.models import *
+from sqlalchemy.future import select
+from schemas.common_schema import *
+import uuid
 app = FastAPI()
 
 # Allow Flutter to connect
@@ -24,18 +29,80 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+
 detection_active = False
 capture_thread = None
 current_capture = None
 results = {}
 plate_texts = []
 
-def analyze_plate():
+LoginModel=None
+
+
+
+@app.on_event("startup")
+async def startup_event():
+    print("On event")
+    await reflect_models(engine, ["user", "slot", "booking", "rental", "parklot", "image", "common"])  
+    global LoginModel
+    LoginModel = create_login_model(get_common_column_names())
+    print(f"Loginschema {LoginModel}")
+   
+   
+@app.post("/login", status_code=200)
+async def verify_number(user: LoginModel, db: AsyncSession = Depends(get_db)):
+    stmt = select(Common).where(Common.mobile_number == user.mobile_number, Common.phone_code == user.phone_code)
+    result = await db.execute(stmt)
+    record = result.scalar_one_or_none() 
+
+    if record is None:
+        login_data = {name: getattr(user, name) for name in get_common_column_names()}
+        login_data['login_id'] = str(uuid.uuid4())
+        new_user = Common(**login_data)
+        db.add(new_user)
+        await db.commit()
+        return {"message": "Registered successfully"}
+
+    return {"message": "Already registered"}
+
+@app.post("/register")
+async def register_number(db:AsyncSession = Depends(get_db)):
+
+    return
+
+@app.post("/verify_otp")
+async def verify_otp(otp=str,number = int ,phone_code = str,db:AsyncSession = Depends(get_db)):
+
+    verify_number = select(Common).where(Common.mobile_number == number,Common.phone_code == phone_code)
+    result = await db.execute(verify_number)
+
+    if result.otp == otp:
+
+        return "OTP Verified Successfully"
+    else:
+        raise HTTPException(status_code=404,detail="Oops OTP parkin permit was invalid 🛑 — request a fresh one!")
+
+
+@app.get("/users")
+async def get_users(db: AsyncSession = Depends(get_db)):
+
+    result = await db.execute(select(User))
+    users = result.scalars().all()
+    return users
+
+
+@app.get("/")
+async def root():
+    return {"message": "Connected to PostgreSQL!"}
+
+
+def analyze_license_plate():
     global detection_active, results, plate_texts, current_capture
     
     try:
-        
-
+    
         mot_tracker = Sort()
         coco_model = YOLO('./anrp/yolov8n.pt')
         license_plate_detector = YOLO('./anrp/models/license_plate_detector.pt')
@@ -96,63 +163,63 @@ def analyze_plate():
             current_capture.release()
         cv2.destroyAllWindows()
 
-@app.post("/start-detection")
-async def start_detection():
-    global detection_active, capture_thread, results, plate_texts
+# @app.post("/start-detection")
+# async def start_detection():
+#     global detection_active, capture_thread, results, plate_texts
     
-    if detection_active:
-        return JSONResponse(content={
-            "status": "error",
-            "message": "Detection is already running"
-        }, status_code=400)
+#     if detection_active:
+#         return JSONResponse(content={
+#             "status": "error",
+#             "message": "Detection is already running"
+#         }, status_code=400)
     
-    # Reset previous results
-    results = {}
-    plate_texts = []
+#     # Reset previous results
+#     results = {}
+#     plate_texts = []
     
-    try:
-        capture_thread = threading.Thread(target=analyze_license_plate)
-        capture_thread.start()
+#     try:
+#         capture_thread = threading.Thread(target=analyze_license_plate)
+#         capture_thread.start()
         
-        return JSONResponse(content={
-            "status": "success",
-            "message": "License plate detection started"
-        })
-    except Exception as e:
-        return JSONResponse(content={
-            "status": "error",
-            "message": str(e)
-        }, status_code=500)
+#         return JSONResponse(content={
+#             "status": "success",
+#             "message": "License plate detection started"
+#         })
+#     except Exception as e:
+#         return JSONResponse(content={
+#             "status": "error",
+#             "message": str(e)
+#         }, status_code=500)
 
-@app.post("/stop-detection")
-async def stop_detection():
-    global detection_active, capture_thread
+# @app.post("/stop-detection")
+# async def stop_detection():
+#     global detection_active, capture_thread
     
-    if not detection_active:
-        return JSONResponse(content={
-            "status": "error",
-            "message": "No active detection to stop"
-        }, status_code=400)
+#     if not detection_active:
+#         return JSONResponse(content={
+#             "status": "error",
+#             "message": "No active detection to stop"
+#         }, status_code=400)
     
-    detection_active = False
+#     detection_active = False
     
-    if capture_thread:
-        capture_thread.join(timeout=5)  # Wait for thread to finish
-    print(results)
-    return JSONResponse(content={
-        "status": "success",
-        "message": "Detection stopped",
-        "results": {
-            "detailed": results,
-            "plate_numbers": plate_texts
-        }
-    })
+#     if capture_thread:
+#         capture_thread.join(timeout=5)  # Wait for thread to finish
+#     print(results)
+#     return JSONResponse(content={
+#         "status": "success",
+#         "message": "Detection stopped",
+#         "results": {
+#             "detailed": results,
+#             "plate_numbers": plate_texts
+#         }
+#     })
 
-@app.get("/detection-status")
-async def get_status():
-    return JSONResponse(content={
-        "status": "success",
-        "detection_active": detection_active,
-        "plates_detected": len(plate_texts) > 0,
-        "plate_numbers": plate_texts
-    })
+# @app.get("/detection-status")
+# async def get_status():
+#     return JSONResponse(content={
+#         "status": "success",
+#         "detection_active": detection_active,
+#         "plates_detected": len(plate_texts) > 0,
+#         "plate_numbers": plate_texts
+#     })

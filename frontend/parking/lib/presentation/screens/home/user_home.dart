@@ -4,8 +4,8 @@ import 'package:parking/presentation/widgets/map.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:parking/presentation/screens/searchpark/search_park.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
+class UserHomePage extends StatelessWidget {
+  const UserHomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
