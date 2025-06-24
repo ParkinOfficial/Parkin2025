@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from ultralytics import YOLO
-from anrp.sort.sort import *
+
 from anrp.util import get_car, read_license_plate, write_csv
 
 def analyze_license_plate():

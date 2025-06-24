@@ -11,7 +11,13 @@ def get_common_column_names() -> List[str]:
     ]
 
 def create_login_model(column_names: List[str]):
-    fields = {name: (str, ...) for name in column_names}
+    fields = {}
+    for name in column_names:
+        if name == "mobile_number":
+            fields[name] = (int, ...)  # ✅ use int, not str
+        else:
+            fields[name] = (str, ...)
     return create_model('LoginModel', **fields)
+
 
 

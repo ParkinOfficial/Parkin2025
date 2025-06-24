@@ -9,7 +9,7 @@ from PIL import Image
 from anrp.main import analyze_license_plate
 import threading
 from ultralytics import YOLO
-from anrp.sort.sort import *
+
 from anrp.util import get_car, read_license_plate
 import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +17,7 @@ from database.database import *
 from models.models import *
 from sqlalchemy.future import select
 from schemas.common_schema import *
+from schemas import common_schema
 import uuid
 app = FastAPI()
 
@@ -39,33 +40,50 @@ results = {}
 plate_texts = []
 
 LoginModel=None
+User = Slot = Booking = Rental = ParkLot = Image = Common = None
 
 
+from fastapi import Body
 
 @app.on_event("startup")
 async def startup_event():
-    print("On event")
-    await reflect_models(engine, ["user", "slot", "booking", "rental", "parklot", "image", "common"])  
     global LoginModel
+    print("On event")
+    await reflect_models(engine, ["user", "slot", "booking", "rental", "parklot", "image", "common"])
+
+ 
     LoginModel = create_login_model(get_common_column_names())
-    print(f"Loginschema {LoginModel}")
-   
-   
-@app.post("/login", status_code=200)
-async def verify_number(user: LoginModel, db: AsyncSession = Depends(get_db)):
-    stmt = select(Common).where(Common.mobile_number == user.mobile_number, Common.phone_code == user.phone_code)
-    result = await db.execute(stmt)
-    record = result.scalar_one_or_none() 
+    global User, Slot, Booking, Rental, ParkLot, Image
+    User = model_registry["user"]
+    Slot = model_registry["slot"]
+    Booking = model_registry["booking"]
+    Rental = model_registry["rental"]
+    ParkLot = model_registry["parklot"]
+    Image = model_registry["image"]
+    Common = model_registry["common"]
 
-    if record is None:
-        login_data = {name: getattr(user, name) for name in get_common_column_names()}
-        login_data['login_id'] = str(uuid.uuid4())
-        new_user = Common(**login_data)
-        db.add(new_user)
-        await db.commit()
-        return {"message": "Registered successfully"}
 
-    return {"message": "Already registered"}
+    @app.post("/login", status_code=200, response_model=dict)
+    async def verify_number(user: LoginModel = Body(...), db: AsyncSession = Depends(get_db)):
+      
+        stmt = select(Common).where(
+            Common.mobile_number == user.mobile_number,
+            Common.phone_code == user.phone_code
+        )
+        result = await db.execute(stmt)
+        record = result.scalar_one_or_none() 
+
+        if record is None:
+            login_data = {name: getattr(user, name) for name in get_common_column_names()}
+            login_data['login_id'] = str(uuid.uuid4())
+            new_user = Common(**login_data)
+            db.add(new_user)
+            await db.commit()
+            return {"message": "Registered successfully"}
+
+        return {"message": "Login SucessFull"}
+
+
 
 @app.post("/register")
 async def register_number(db:AsyncSession = Depends(get_db)):
