@@ -39,6 +39,8 @@ dependencies:
   carousel_slider: ^5.1.1
   country_picker: ^2.0.22
   cupertino_icons: ^1.0.8
+  ping_discover_network_forked: ^0.0.1
+  network_info_plus: ^6.1.4
 
 dev_dependencies:
   flutter_test:

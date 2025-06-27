@@ -74,6 +74,7 @@ async def startup_event():
         record = result.scalar_one_or_none() 
 
         if record is None:
+
             login_data = {name: getattr(user, name) for name in get_common_column_names()}
             login_data['login_id'] = str(uuid.uuid4())
             new_user = Common(**login_data)
@@ -81,7 +82,7 @@ async def startup_event():
             await db.commit()
             return {"message": "Registered successfully"}
 
-        return {"message": "Login SucessFull"}
+        return {"message": "Logged Sucessfully"}
 
 
 
@@ -93,13 +94,17 @@ async def startup_event():
     @app.post("/verify_otp")
     async def verify_otp(otp:str,user:LoginModel = Body(...),db:AsyncSession = Depends(get_db)):
 
-        verify_number = select(Common).where(Common.mobile_number == user.mobile_number,Common.phone_code == user.phone_code)
-        result = await db.execute(verify_number)
-        print(f"Result{result}")
+        stmt = select(Common).where(
+            Common.mobile_number == user.mobile_number,
+            Common.phone_code == user.phone_code,
+            Common.otp == otp
+        )
+        result = await db.execute(stmt)
+        print(result)
         record = result.scalar_one_or_none() 
-        if record.otp == otp:
+        if record:
 
-            return "OTP Verified Successfully"
+            return {"message":"OTP Verified in Parkin","role":record.roles}
         else:
             raise HTTPException(status_code=404,detail="Oops OTP parkin permit was invalid 🛑 — request a fresh one!")
 
@@ -109,6 +114,7 @@ async def startup_event():
 
         result = await db.execute(select(User))
         users = result.scalars().all()
+
         return users
 
 

@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<bool> _checkPhoneNumberExists(String phoneNumber) async {
-    final phoneCode = '+${selectedCountry.phoneCode}';
+    final phoneCode = selectedCountry.phoneCode;
 
     print("📲 Calling API: $verifyLogin");
     print("📦 Request body: {mobile_number: $phoneNumber, phone_code: $phoneCode}");

@@ -48,15 +48,13 @@ class _OtpScreenState extends State<OtpScreen> {
         final data = jsonDecode(response.body);
         final role = data['role'];
 
-        if (role is String) {
-          if (role == 'user') {
+        if (role.length <= 1 ) {
+          if (role['user'] == 'User') {
             Navigator.pushNamed(context, '/userPage');
-          } else if (role == 'owner') {
+          } else if (role['owner'] == 'Owner') {
             Navigator.pushNamed(context, '/ownerPage');
-          } else {
-            _showSnackBar("Unknown role: $role");
           }
-        } else if (role is List && role.contains('user') && role.contains('owner')) {
+        } else if (role.length > 1) {
           Navigator.pushNamed(context, '/roleSelection');
         } else {
           _showSnackBar("Invalid role format");
