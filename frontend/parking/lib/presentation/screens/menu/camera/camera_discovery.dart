@@ -9,26 +9,48 @@ class CameraDiscoveryPage extends StatefulWidget {
 
 class _CameraDiscoveryPageState extends State<CameraDiscoveryPage> {
   List<String> discoveredDevices = [];
+  bool isScanning = false;
 
   Future<void> discoverCameras() async {
+    setState(() {
+      isScanning = true;
+      discoveredDevices.clear();
+    });
+
     final info = NetworkInfo();
     final ip = await info.getWifiIP();
 
-    if (ip == null) return;
+    if (ip == null) {
+      setState(() {
+        isScanning = false;
+      });
+      return;
+    }
 
     final subnet = ip.substring(0, ip.lastIndexOf('.'));
-    const port = 554; // RTSP default port
+    final portsToTry = [80,443];
 
-    final stream = NetworkAnalyzer.discover2(subnet, port, timeout: Duration(milliseconds: 5000));
+    for (int port in portsToTry) {
+      final stream = NetworkAnalyzer.discover2(subnet, port, timeout: Duration(milliseconds: 300));
 
-    await for (final addr in stream) {
-      if (addr.exists) {
-        print('Found device at: ${addr.ip}');
-        setState(() {
-          discoveredDevices.add(addr.ip);
-        });
+      await for (final addr in stream) {
+        try {
+          if (addr.exists && !discoveredDevices.contains('${addr.ip}:$port')) {
+            print('Found device at ${addr.ip} on port $port');
+            setState(() {
+              discoveredDevices.add('${addr.ip}:$port');
+            });
+          }
+        } catch (e) {
+
+          print('Timeout on ${addr.ip}:$port');
+        }
       }
     }
+
+    setState(() {
+      isScanning = false;
+    });
   }
 
   @override
@@ -41,13 +63,35 @@ class _CameraDiscoveryPageState extends State<CameraDiscoveryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Camera Discovery")),
-      body: ListView.builder(
-        itemCount: discoveredDevices.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(discoveredDevices[index]),
-          );
-        },
+      body: Column(
+        children: [
+          if (isScanning)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          Expanded(
+            child: discoveredDevices.isEmpty
+                ? Center(
+              child: Text(isScanning
+                  ? "Scanning network for cameras..."
+                  : "No devices found."),
+            )
+                : ListView.builder(
+              itemCount: discoveredDevices.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  leading: Icon(Icons.videocam),
+                  title: Text(discoveredDevices[index]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: discoverCameras,
+        child: Icon(Icons.refresh),
       ),
     );
   }

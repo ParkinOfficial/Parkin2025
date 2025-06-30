@@ -5,6 +5,7 @@ import 'package:parking/presentation/screens/anrp/anrp.dart';
 import 'package:camera/camera.dart';
 import 'package:parking/presentation/screens/login/login.dart';
 import 'package:parking/presentation/screens/menu/camera/camera_discovery.dart';
+import 'package:parking/presentation/screens/menu/payment/payment.dart';
 import 'package:parking/presentation/widgets/slider.dart';
 
 void main() async {
@@ -29,7 +30,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: CameraDiscoveryPage(),
+      home: PaymentScreen(),
       routes: Routes,
     );
   }

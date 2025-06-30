@@ -19,8 +19,9 @@ from sqlalchemy.future import select
 from schemas.common_schema import *
 from schemas import common_schema
 import uuid
+from crud import payment
 app = FastAPI()
-
+app.include_router(payment.router, prefix="/payments")
 # Allow Flutter to connect
 app.add_middleware(
     CORSMiddleware,
@@ -29,9 +30,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-
 
 detection_active = False
 capture_thread = None
