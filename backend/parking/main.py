@@ -18,7 +18,21 @@ from models.models import *
 from sqlalchemy.future import select
 from schemas.common_schema import *
 from schemas import common_schema
+from crud.common import *
 import uuid
+from crud import register as register_crud
+from schemas.rental_schema import *
+from schemas.parklot_schema import *
+from schemas.user_schema import *
+from schemas.slot_schemas import *
+from schemas.request_schemas import *
+
+
+
+
+
+
+
 app = FastAPI()
 
 # Allow Flutter to connect
@@ -40,7 +54,7 @@ results = {}
 plate_texts = []
 
 LoginModel=None
-User = Slot = Booking = Rental = ParkLot = Image = Common = None
+Users = Slot = Booking = Rental = ParkLot = Image = Common = None
 
 
 from fastapi import Body
@@ -49,12 +63,12 @@ from fastapi import Body
 async def startup_event():
     global LoginModel
     print("On event")
-    await reflect_models(engine, ["user", "slot", "booking", "rental", "parklot", "image", "common"])
+    await reflect_models(engine, ["users", "slot", "booking", "rental", "parklot", "image", "common"])
 
  
     LoginModel = create_login_model(get_common_column_names())
     global User, Slot, Booking, Rental, ParkLot, Image
-    User = model_registry["user"]
+    User = model_registry["users"]
     Slot = model_registry["slot"]
     Booking = model_registry["booking"]
     Rental = model_registry["rental"]
@@ -91,16 +105,24 @@ async def register_number(db:AsyncSession = Depends(get_db)):
     return
 
 @app.post("/verify_otp")
-async def verify_otp(otp=str,number = int ,phone_code = str,db:AsyncSession = Depends(get_db)):
+async def verify_otp(otp: str, number: int, phone_code: str, db: AsyncSession = Depends(get_db)):
+    Common = model_registry['common']
 
-    verify_number = select(Common).where(Common.mobile_number == number,Common.phone_code == phone_code)
-    result = await db.execute(verify_number)
+    record = await get_common_record(db, Common, number, phone_code)
 
-    if result.otp == otp:
+    if record and record.otp == otp:
+        response = {
+            "message": "OTP Verified Successfully ✅",
+            "roles": json.loads(record.roles) if isinstance(record.roles, str) else record.roles,
+        }
 
-        return "OTP Verified Successfully"
+        linked_ids = await get_linked_ids(db, number, model_registry)
+        response.update(linked_ids)
+
+        return response
     else:
-        raise HTTPException(status_code=404,detail="Oops OTP parkin permit was invalid 🛑 — request a fresh one!")
+        raise HTTPException(status_code=404, detail="Oops! OTP was invalid 🛑 — request a fresh one!")
+
 
 
 @app.get("/users")
@@ -180,6 +202,43 @@ def analyze_license_plate():
         if current_capture:
             current_capture.release()
         cv2.destroyAllWindows()
+
+@app.post("/register")
+async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    role = payload.role
+    data = payload.data
+
+    try:
+        if role == "user":
+            user_id = await register_crud.insert_user(db, data.dict())
+            await register_crud.insert_common(
+                db, data.mobile_number, data.phone_code, {"user": user_id}
+            )
+
+        elif role == "rental":
+            slot_data = data.slot.dict()
+            rental_data = data.rental.dict()
+            slot_id = await register_crud.insert_slot(db, slot_data)
+            rental_id = await register_crud.insert_rental(db, rental_data, slot_id)
+            await register_crud.insert_common(
+                db, rental_data["mobile_number"], rental_data["phone_code"], {"rental": rental_id}
+            )
+
+        elif role == "parklot":
+            slot_data = data.slot.dict()
+            parklot_data = data.parklot.dict()
+            slot_id = await register_crud.insert_slot(db, slot_data)
+            parklot_id = await register_crud.insert_parklot(db, parklot_data, slot_id)
+            await register_crud.insert_common(
+                db, parklot_data["mobile_number"], parklot_data["phone_code"], {"parklot": parklot_id}
+            )
+
+        await db.commit()
+        return {"message": f"{role.capitalize()} registered successfully ✅"}
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # @app.post("/start-detection")
 # async def start_detection():

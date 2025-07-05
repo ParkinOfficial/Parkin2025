@@ -12,7 +12,7 @@ import sys
 model_registry = {}
 metadata = MetaData()
 
-User = Slot = Booking = Rental = ParkLot = Image  = None
+Users = Slot = Booking = Rental = ParkLot = Image  = None
 class Base(DeclarativeBase):
     pass
 
